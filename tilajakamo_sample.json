@@ -1,0 +1,7 @@
+{
+	"token":"",
+	"apua":"Esim.\n/jaa kartta1, kartta2 tai kartta3\n/kuka nimi\n/huone numero\n/liity talkookanava \n/liity tapahtumakanava\n/liity saneerauskanava\n\nViestit kanaville, /komento ja perään viestin teksti\nKomennot:\n/huolto ilmoitus korjaustarpeesta \n/siivous pyyntö\n/ehdotus hallitukselle\n/sos joku paikalle heti!!! \n/netti vikailmoitus jos ei toimi\n/talkoot raatajia kaivataan\n /tapahtuma häppeningin aika ja asia.\nVoit lähettää botille myös yksityisviestejä!  ",
+
+	"okei!":"Okei tyypit! Tilajakamo on paras!",
+
+}
