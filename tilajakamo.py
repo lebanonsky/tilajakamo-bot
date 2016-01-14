@@ -64,14 +64,14 @@ def join(bot, update):
                 disable_web_page_preview=False
                 )
     except:
-        list = "Tapahtumat %s\n Talkoot %s\nSaneeraus %s" %(tilajakamo_data['tapahtumakanava'],tilajakamo_data['talkookanava'],tilajakamo_data['saneerauskanava'])
+        list = "Tapahtumat %s\nTalkoot %s\nSaneeraus %s" %(tilajakamo_data['tapahtumakanava'],tilajakamo_data['talkookanava'],tilajakamo_data['saneerauskanava'])
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text=list)
 
 def test(bot, update):
     to_chat_id = tilajakamo_data['testi']
     try:
         msg = update.message.text.split(' ',1)[1]
-        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu testiin!")
+        bot.sendMessage(update.message.chat_id, force_reply = True, reply_to_message_id = update.message.message_id, text="Tallennettu testiin!")
         bot.sendMessage(to_chat_id, msg)
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = "Okei, lisää juttu komennon perään!")
