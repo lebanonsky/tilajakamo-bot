@@ -83,15 +83,25 @@ def test(bot, update):
     markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
     bot.sendMessage(update.message.chat_id, reply_markup = markup, text="Oletko varma!")
 
+def sos(bot, update):
+    to_chat_id = tilajakamo_data['channel']['sos']
+    global msg
+    try:
+        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
+    except:
+        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
+        return
+    custom_keyboard = [[u'/OK', u'/EI' ]]
+    markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
+    bot.sendMessage(update.message.chat_id, reply_markup = markup, text="Oletko varma!")
+
 def confirm(bot, update):
-    to_chat_id = tilajakamo_data['channel']['testi']
+    to_chat_id = tilajakamo_data['channel']['sos']
     global msg
     bot.sendMessage(to_chat_id, msg)
-    logger.warn('ok')    
-    bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu!")
+    bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="SOS lähetetty!")
 
 def cancel(bot, update):
-    logger.warn('ei')    
     bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Peruutettu!")
 
 def huolto(bot, update):
@@ -136,15 +146,6 @@ def ehdotus(bot, update):
         msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu ehdotuksiin!")
-    except:
-        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
-
-def sos(bot, update):
-    to_chat_id = tilajakamo_data['channel']['sos']
-    try:
-        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
-        bot.sendMessage(to_chat_id, msg)
-        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu HÄLYTYKSIIN!")
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
 
