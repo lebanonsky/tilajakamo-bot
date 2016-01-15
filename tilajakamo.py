@@ -20,9 +20,10 @@ from random import getrandbits
 
 import re
 
-from telegram import Updater, Update, InlineQueryResultArticle, ParseMode
+from telegram import Updater, Update, InlineQueryResultArticle, ParseMode, ReplyKeyboardMarkup, ForceReply
 import logging
 import json
+import time
 
 # Enable logging
 logging.basicConfig(
@@ -32,6 +33,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 tilajakamo_data = json.load(open('./tilajakamo.json'))
+
+msg = ''
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
@@ -68,81 +71,96 @@ def join(bot, update):
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text=list)
 
 def test(bot, update):
-    to_chat_id = tilajakamo_data['testi']
+    to_chat_id = tilajakamo_data['channel']['testi']
+    #logger.warn(update.message.[0].username)
+    global msg
     try:
-        msg = update.message.text.split(' ',1)[1]
-        bot.sendMessage(update.message.chat_id, force_reply = True, reply_to_message_id = update.message.message_id, text="Tallennettu testiin!")
-        bot.sendMessage(to_chat_id, msg)
+        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = "Okei, lisää juttu komennon perään!")
-        
+        return
+    custom_keyboard = [[u'/OK', u'/EI' ]]
+    markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
+    bot.sendMessage(update.message.chat_id, reply_markup = markup, text="Oletko varma!")
+
+def confirm(bot, update):
+    to_chat_id = tilajakamo_data['channel']['testi']
+    global msg
+    bot.sendMessage(to_chat_id, msg)
+    logger.warn('ok')    
+    bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu!")
+
+def cancel(bot, update):
+    logger.warn('ei')    
+    bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Peruutettu!")
+
 def huolto(bot, update):
-    to_chat_id = tilajakamo_data['huolto']
+    to_chat_id = tilajakamo_data['channel']['huolto']
     try:
-        msg = update.message.text.split(' ',1)[1]
+        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu huoltotoiveisiin!")
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
 
 def siivous(bot, update):
-    to_chat_id = tilajakamo_data['siivous']
+    to_chat_id = tilajakamo_data['channel']['siivous']
     try:
-        msg = update.message.text.split(' ',1)[1]
+        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu siivousilmoituksiin!")
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
 
 def talkoot(bot, update):
-    to_chat_id = tilajakamo_data['talkoot']
+    to_chat_id = tilajakamo_data['channel']['talkoot']
     try:
-        msg = update.message.text.split(' ',1)[1]
+        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu talkookutsuihin!")
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
 
 def tapahtuma(bot, update):
-    to_chat_id = tilajakamo_data['tapahtumat']
+    to_chat_id = tilajakamo_data['channel']['tapahtumat']
     try:
-        msg = update.message.text.split(' ',1)[1]
+        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu tapahtumiin!")
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
 
 def ehdotus(bot, update):
-    to_chat_id = tilajakamo_data['ehdotus']
+    to_chat_id = tilajakamo_data['channel']['ehdotus']
     try:
-        msg = update.message.text.split(' ',1)[1]
+        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu ehdotuksiin!")
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
 
 def sos(bot, update):
-    to_chat_id = tilajakamo_data['sos']
+    to_chat_id = tilajakamo_data['channel']['sos']
     try:
-        msg = update.message.text.split(' ',1)[1]
+        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu HÄLYTYKSIIN!")
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
 
 def netti(bot, update):
-    to_chat_id = tilajakamo_data['netti']
+    to_chat_id = tilajakamo_data['channel']['netti']
     try:
-        msg = update.message.text.split(' ',1)[1]
+        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu nettivalituksiin!")
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
 
 def paatos(bot, update):
-    to_chat_id = tilajakamo_data['kirjaus']
+    to_chat_id = tilajakamo_data['channel']['kirjaus']
     try:
-        msg = update.message.text.split(' ',1)[1]
+        msg = "@%s: %s" %(update.message.from_user.username, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Tallennettu hallituksen päätöksiin!")
     except:
@@ -209,6 +227,8 @@ def main():
     dp.addTelegramCommandHandler("tapahtuma", tapahtuma)
     dp.addTelegramCommandHandler("ehdotus", ehdotus)
     dp.addTelegramCommandHandler("sos", sos)
+    dp.addTelegramCommandHandler('OK', confirm)
+    dp.addTelegramCommandHandler('EI', cancel)
 
     # on noncommand i.e message - echo the message on Telegram
     dp.addTelegramInlineHandler(inlinequery)
