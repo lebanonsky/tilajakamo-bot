@@ -24,6 +24,7 @@ from telegram import Updater, Update, InlineQueryResultArticle, ParseMode, Reply
 import logging
 import json
 import time
+import requests
 
 # Enable logging
 logging.basicConfig(
@@ -33,6 +34,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 tilajakamo_data = json.load(open('./tilajakamo.json'))
+
+tilajakamo_base = "http://dev1.netzionale.com:8000/api/v1/pages"
+
+rest_persons = "%s/?type=home.PersonPage" %(tilajakamo_base)
+
+rest_data = requests.get(rest_persons).json()
+
+#tilajakamo_rest = json.load(rest_data.json())
+
+persons = []
+for page in rest_data['pages']:
+     person = requests.get(page['meta']['detail_url']).json()
+     persons.append(person)
+
+print persons
+
+logger.debug(rest_data)
 
 msg = ''
 
@@ -59,6 +77,19 @@ def share(bot, update):
     else:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Ei ole!")
 
+def who(bot, update):
+    try:
+        key = update.message.text.split()[1]
+    except:
+        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
+
+    msg="Ei ole!"
+    for person in persons:
+            if key.lower() == person['first_name'].lower() or key.lower() == person['last_name'].lower() or key.lower() == person['telegram'].lower():
+                    msg = person['telegram']
+                    
+    bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = msg )
+
 def join(bot, update):
     try:
         key = update.message.text.split()[1]
@@ -76,10 +107,6 @@ def test(bot, update):
     chat = bot.getUpdates()[-1].message.chat_id
     logger.warn(chat)
     global msg
-    logger.warn('moimoi %s', update.message ) 
-    if 'new_chat_participant' in update.message:
-        bot.sendMessage(update.message.chat_id, text="moi")
-
     try:
         msg = "%s %s: %s" %(update.message.from_user.first_name, update.message.from_user.last_name, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
@@ -263,6 +290,8 @@ def main():
     dp.addTelegramCommandHandler('myyn', omv)
     dp.addTelegramCommandHandler('vaihdan', omv)
     dp.addTelegramCommandHandler('tiedote', news)
+    dp.addTelegramCommandHandler('who', who)
+    
         
 
     # on noncommand i.e message - echo the message on Telegram
@@ -273,6 +302,10 @@ def main():
 
     # Start the Bot
     updater.start_polling()
+    
+    # Alternatively, run with webhook:
+    #updater.bot.setWebhook(webhook_url='http://44807aa7.ngrok.com/%s/webhook' % TOKEN)
+    #update_queue = updater.start_webhook('0.0.0.0', 8443)
 
     # Block until the user presses Ctrl-C or the process receives SIGINT,
     # SIGTERM or SIGABRT. This should be used most of the time, since
