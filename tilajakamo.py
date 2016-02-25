@@ -35,27 +35,49 @@ logger = logging.getLogger(__name__)
 
 tilajakamo_data = json.load(open('./tilajakamo.json'))
 
-tilajakamo_base = "http://dev1.netzionale.com:8000/api/v1/pages"
+rooms = []
 
-rest_persons = "%s/?type=home.PersonPage" %(tilajakamo_base)
+def rest_update(bot, update):
+    tilajakamo_base = "http://dev1.netzionale.com:8000/api/v1/pages"
 
-rest_data = requests.get(rest_persons).json()
+    rest_data = "%s/?type=home.RoomPage&limit=100" %(tilajakamo_base)
 
-#tilajakamo_rest = json.load(rest_data.json())
+    json_data = requests.get(rest_data).json()
 
-persons = []
-for page in rest_data['pages']:
-     person = requests.get(page['meta']['detail_url']).json()
-     persons.append(person)
+    #tilajakamo_rest = json.load(rest_data.json())
 
-print persons
+    for page in json_data['pages']:
+        room = requests.get(page['meta']['detail_url']).json()
+        rooms.append(room)
 
-logger.debug(rest_data)
+        #logger.info(room)
+
+    return rooms
+
+
+def auto_update(bot):
+    tilajakamo_base = "http://dev1.netzionale.com:8000/api/v1/pages"
+
+    rest_data = "%s/?type=home.RoomPage&limit=100" %(tilajakamo_base)
+
+    json_data = requests.get(rest_data).json()
+
+    #tilajakamo_rest = json.load(rest_data.json())
+
+    for page in json_data['pages']:
+        room = requests.get(page['meta']['detail_url']).json()
+        rooms.append(room)
+
+        #logger.info(room)
+
+    return rooms
 
 msg = ''
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
+
+
 def start(bot, update):
     bot.sendMessage(update.message.chat_id, text=tilajakamo_data['apua'])
 
@@ -84,11 +106,16 @@ def who(bot, update):
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
 
     msg="Ei ole!"
-    for person in persons:
-            if key.lower() == person['first_name'].lower() or key.lower() == person['last_name'].lower() or key.lower() == person['telegram'].lower():
-                    msg = person['telegram']
-                    
-    bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = msg )
+
+    for room in rooms:
+        if room['member'] != None:
+            if key.lower() == room['member']['first_name'].lower() or key.lower() == room['member']['last_name'].lower() or key.lower() == room['member']['telegram'].lower() or key == room['title']:
+                msg = "%s %s @%s - %s #%s" %(room['member']['first_name'],room['member']['last_name'],room['member']['telegram'],room['member']['intro'], room['title'])    
+                bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = msg )
+
+    if msg == "Ei ole!":
+        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = msg )
+
 
 def join(bot, update):
     try:
@@ -263,6 +290,9 @@ def main():
     # Create the Updater and pass it your bot's token.
     TOKEN = tilajakamo_data['token']
     updater = Updater(TOKEN)
+    
+    jq = updater.job_queue
+    jq.put(auto_update, 1, next_t=720)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -279,6 +309,7 @@ def main():
     dp.addTelegramCommandHandler("siivous", siivous)
     dp.addTelegramCommandHandler("netti", netti)
     dp.addTelegramCommandHandler("kirjaus", paatos)
+    dp.addTelegramCommandHandler("p", paatos)
     dp.addTelegramCommandHandler("talkoot", talkoot)
     dp.addTelegramCommandHandler("tapahtuma", tapahtuma)
     dp.addTelegramCommandHandler("ehdotus", ehdotus)
@@ -291,8 +322,8 @@ def main():
     dp.addTelegramCommandHandler('vaihdan', omv)
     dp.addTelegramCommandHandler('tiedote', news)
     dp.addTelegramCommandHandler('who', who)
+    dp.addTelegramCommandHandler('update', rest_update)
     
-        
 
     # on noncommand i.e message - echo the message on Telegram
     dp.addTelegramInlineHandler(inlinequery)
