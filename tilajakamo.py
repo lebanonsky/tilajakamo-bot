@@ -101,20 +101,24 @@ def share(bot, update):
 
 def who(bot, update):
     try:
-        key = update.message.text.split()[1]
+        key = update.message.text.split()[1].lower()
     except:
-        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää juttu komennon perään!")
+        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää nimi komennon perään!")
 
-    msg="Ei ole!"
+    msg=""
+
+    h = 0
 
     for room in rooms:
         if room['member'] != None:
-            if key.lower() == room['member']['first_name'].lower() or key.lower() == room['member']['last_name'].lower() or key.lower() == room['member']['telegram'].lower() or key == room['title']:
-                msg = "%s %s @%s - %s #%s" %(room['member']['first_name'],room['member']['last_name'],room['member']['telegram'],room['member']['intro'], room['title'])    
-                bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = msg )
+            if room['member']['first_name'].lower().startswith(key) or room['member']['last_name'].lower().startswith(key) or room['member']['telegram'].lower().startswith(key) or room['title'].startswith(key):
+                msg = msg + "%s %s @%s on #%s #%s\n\n" %(room['member']['first_name'],room['member']['last_name'],room['member']['telegram'], room['title'],room['member']['intro'] )    
+                h+=1
+              
+    if h == 0:
+        msg = "Ei ole!"
 
-    if msg == "Ei ole!":
-        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = msg )
+    bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = msg )
 
 
 def join(bot, update):
@@ -292,7 +296,7 @@ def main():
     updater = Updater(TOKEN)
     
     jq = updater.job_queue
-    jq.put(auto_update, 1, next_t=720)
+    jq.put(auto_update, 3600, next_t=21600)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
