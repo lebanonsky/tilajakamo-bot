@@ -25,6 +25,7 @@ import logging
 import json
 import time
 import requests
+import re
 
 # Enable logging
 logging.basicConfig(
@@ -37,35 +38,44 @@ tilajakamo_data = json.load(open('./tilajakamo.json'))
 
 rooms = []
 
+tilajakamo_base = "https://tilajakamo.fi/api/v1/pages"
+
 def rest_update(bot, update):
-    tilajakamo_base = "http://dev1.netzionale.com:8000/api/v1/pages"
+    
+    logger.info('XXX')
+
+    del rooms[:]
 
     rest_data = "%s/?type=home.RoomPage&limit=100" %(tilajakamo_base)
 
-    json_data = requests.get(rest_data).json()
+    json_data = requests.get(rest_data, verify=False).json()
 
     #tilajakamo_rest = json.load(rest_data.json())
 
     for page in json_data['pages']:
-        room = requests.get(page['meta']['detail_url']).json()
+        room = requests.get(page['meta']['detail_url'], verify=False).json()
         rooms.append(room)
 
-        #logger.info(room)
+    logger.info(rooms)
+
+    bot.sendMessage(update.message.chat_id, text='...ok')
 
     return rooms
 
 
 def auto_update(bot):
-    tilajakamo_base = "http://dev1.netzionale.com:8000/api/v1/pages"
+
+    del rooms[:]
 
     rest_data = "%s/?type=home.RoomPage&limit=100" %(tilajakamo_base)
 
-    json_data = requests.get(rest_data).json()
+
+    json_data = requests.get(rest_data, verify=False).json()
 
     #tilajakamo_rest = json.load(rest_data.json())
 
     for page in json_data['pages']:
-        room = requests.get(page['meta']['detail_url']).json()
+        room = requests.get(page['meta']['detail_url'], verify=False).json()
         rooms.append(room)
 
         #logger.info(room)
@@ -104,6 +114,7 @@ def who(bot, update):
         key = update.message.text.split()[1].lower()
     except:
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Okei, lisää nimi komennon perään!")
+        return
 
     msg=""
 
@@ -111,8 +122,9 @@ def who(bot, update):
 
     for room in rooms:
         if room['member'] != None:
-            if room['member']['first_name'].lower().startswith(key) or room['member']['last_name'].lower().startswith(key) or room['member']['telegram'].lower().startswith(key) or room['title'].startswith(key):
-                msg = msg + "%s %s @%s on #%s #%s\n\n" %(room['member']['first_name'],room['member']['last_name'],room['member']['telegram'], room['title'],room['member']['intro'] )    
+            if room['member']['title'].lower().startswith(key) or room['member']['first_name'].lower().startswith(key) or room['member']['last_name'].lower().startswith(key) or room['member']['telegram'].lower().startswith(key) or room['title'].startswith(key):
+                intro = re.sub('<[^<]+?>', '', room['member']['intro'])
+                msg = msg + '%s %s @%s #%s \n"%s"\n\n' %(room['member']['first_name'],room['member']['last_name'],room['member']['telegram'], room['title'],intro )    
                 h+=1
               
     if h == 0:
@@ -305,8 +317,8 @@ def main():
     dp.addTelegramCommandHandler("okei", okei)
     dp.addTelegramCommandHandler("apua", help)
     dp.addTelegramCommandHandler("jaa", share)
-    dp.addTelegramCommandHandler("kuka", share)
-    dp.addTelegramCommandHandler("huone", share)
+    dp.addTelegramCommandHandler("kuka", who)
+    dp.addTelegramCommandHandler("huone", who)
     dp.addTelegramCommandHandler("testi", test)
     dp.addTelegramCommandHandler("liity", join)
     dp.addTelegramCommandHandler("huolto", huolto)
