@@ -26,6 +26,14 @@ import json
 import time
 import requests
 import re
+import pytz
+from datetime import datetime
+
+from django.utils import feedgenerator
+#from feedgen.feed import FeedGenerator
+from lxml import objectify
+import lxml.etree as et
+
 
 # Enable logging
 logging.basicConfig(
@@ -42,14 +50,14 @@ tilajakamo_base = "https://tilajakamo.fi/api/v1/pages"
 
 def rest_update(bot, update):
     
-    logger.info('XXX')
-
     del rooms[:]
 
     rest_data = "%s/?type=home.RoomPage&limit=100" %(tilajakamo_base)
 
-    json_data = requests.get(rest_data, verify=False).json()
-
+    try:
+        json_data = requests.get(rest_data, verify=False).json()
+    except:
+        json_data = ''
     #tilajakamo_rest = json.load(rest_data.json())
 
     for page in json_data['pages']:
@@ -83,6 +91,7 @@ def auto_update(bot):
     return rooms
 
 msg = ''
+key = ''
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
@@ -145,21 +154,6 @@ def join(bot, update):
         list = "Tapahtumat %s\nTalkoot %s\nSaneeraus %s\nOstomyyntivaihto %s\nTiedotteet %s" %(tilajakamo_data['tapahtumakanava'],tilajakamo_data['talkookanava'],tilajakamo_data['saneerauskanava'],tilajakamo_data['ostomyyntivaihto'], tilajakamo_data['tiedotteet'])
         bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text=list)
 
-def test(bot, update):
-    to_chat_id = tilajakamo_data['channel']['testi']
-    chat = bot.getUpdates()[-1].message.chat_id
-    logger.warn(chat)
-    global msg
-    try:
-        msg = "%s %s: %s" %(update.message.from_user.first_name, update.message.from_user.last_name, update.message.text.split(' ',1)[1]) 
-        bot.sendMessage(to_chat_id, msg)
-    except:
-        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = "Okei, lisää juttu komennon perään!")
-        return
-    # custom_keyboard = [[u'/OK', u'/EI' ]]
-    # markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-    # bot.sendMessage(update.message.chat_id, reply_markup = markup, text="Oletko varma!")
-
 def sos(bot, update):
     to_chat_id = tilajakamo_data['channel']['sos']
     global msg
@@ -177,6 +171,136 @@ def confirm(bot, update):
     global msg
     bot.sendMessage(to_chat_id, msg)
     bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="SOS lähetetty!")
+
+def news_feed(bot,update):
+    try:
+        entry = update.message.text.split(' ',1)[1]
+        logger.warn(update.update_id)
+    except:
+        pass
+
+    feed = feedgenerator.Rss201rev2Feed(
+         title = "Tilajakamo",
+         link = "http://139.162.147.227/news.rss",
+         description = "Osuuskunta Lapinlahden Tilajakamo tiedottaa",
+         language="fi",
+    )
+    
+    feed.add_item(
+        title = "%s (%s)"%(entry, datetime.today().strftime('%d. %m. %Y') ),
+        link = "#",
+        description = "%s (%s)"%(entry, datetime.today().strftime('%d. %m. %Y') )
+    )
+
+    try:    
+        with open('/var/www/html/news.rss','r') as fd:
+            root = objectify.fromstring(fd.read())
+
+        i = 0
+        for item in root['channel']['item']:
+            logger.warn(item.title)
+            if i < 10:
+                feed.add_item(title=item.title,
+                    link=item.link,
+                    description=item.description)
+                i = i + 1            
+    except:
+        pass
+
+    with open('/var/www/html/news.rss', 'w') as fp:
+        feed.write(fp, 'utf-8')
+
+def event_feed(bot,update):
+    try:
+        entry = update.message.text.split(' ',1)[1]
+    except:
+        pass
+
+    feed = feedgenerator.Rss201rev2Feed(
+         title = "Tilajakamo",
+         link = "http://139.162.147.227/events.rss",
+         description = "Osuuskunta Lapinlahden Tilajakamon tapahtumat",
+         language="fi",
+    )
+    
+    feed.add_item(
+        title = u"%s (%s)"%(entry, datetime.today().strftime('%d. %m. %Y') ),
+        link = "#",
+        description = u"%s (%s)"%(entry, datetime.today().strftime('%d. %m. %Y') )
+    )
+    
+    try:
+        with open('/var/www/html/events.rss','r') as fd:
+            root = objectify.fromstring(fd.read())
+
+        i = 0
+        for item in root['channel']['item']:
+            if i < 10:
+                feed.add_item(title=item.title,
+                    link=item.link,
+                    description=item.description)
+                i = i + 1            
+    except:
+        pass
+
+    with open('/var/www/html/events.rss', 'w') as fp:
+        feed.write(fp, 'utf-8')
+
+def remove_feed(bot,update):
+
+
+    try:
+        entry = update.message.text.split(' ',1)[1]
+    except:
+        pass
+    
+    # logger.warn('entry...%s',type(entry))
+
+    with open('/var/www/html/news.rss','r') as fd:
+        rss = objectify.fromstring(fd.read())    
+        # logger.warn(rss['channel'])
+
+        for item in rss['channel']['item']:
+            title = unicode(item.title[0])
+            # logger.warn('find...%s %s'%(entry, title.find(entry)))
+            if title.find(entry) > -1:
+
+                rss['channel'].remove(item)
+                bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = "Okei, poistettu feedistä")
+    
+    feed = et.tostring(rss)
+    with open('/var/www/html/news.rss', 'w') as fp:
+        fp.write(feed)         
+
+    # try:
+    #     with open('/var/www/html/news.rss','r') as fd:
+    #         root = objectify.fromstring(fd.read())
+
+    #     for item in root['channel']['item']:
+    #         if entry[:9] in item.title[:9]:
+    #             item.getparent().remove(item)
+    #             bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = "Okei, poistettu feedistä")
+    #             with open('/var/www/html/news.rss', 'w') as fp:
+    #                 fp.write(et.tostring(fd), 'utf-8')         
+    # except:
+    #     pass
+
+
+def test(bot, update):
+    to_chat_id = tilajakamo_data['channel']['testi']
+    #news_feed(bot, update)
+    # chat = bot.getUpdates()[-1].message.chat_id
+
+    global msg
+    try:
+        msg = "%s %s: %s" %(update.message.from_user.first_name, update.message.from_user.last_name, update.message.text.split(' ',1)[1]) 
+        bot.sendMessage(to_chat_id, msg)
+    except:
+        bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text = "Okei, lisää juttu komennon perään!")
+        return
+    # custom_keyboard = [[u'/OK', u'/EI' ]]
+    # markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
+    # bot.sendMessage(update.message.chat_id, reply_markup = markup, text="Oletko varma!")
 
 def cancel(bot, update):
     bot.sendMessage(update.message.chat_id, reply_to_message_id = update.message.message_id, text="Peruutettu!")
@@ -201,6 +325,8 @@ def siivous(bot, update):
 
 def news(bot, update):
     to_chat_id = tilajakamo_data['channel']['tiedote']
+    news_feed(bot, update)
+
     try:
         msg = "%s %s: %s" %(update.message.from_user.first_name, update.message.from_user.last_name, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
@@ -220,6 +346,7 @@ def talkoot(bot, update):
 
 def tapahtuma(bot, update):
     to_chat_id = tilajakamo_data['channel']['tapahtumat']
+    event_feed(bot, update)
     try:
         msg = "%s %s: %s" %(update.message.from_user.first_name, update.message.from_user.last_name, update.message.text.split(' ',1)[1]) 
         bot.sendMessage(to_chat_id, msg)
@@ -339,6 +466,9 @@ def main():
     dp.addTelegramCommandHandler('tiedote', news)
     dp.addTelegramCommandHandler('who', who)
     dp.addTelegramCommandHandler('update', rest_update)
+    dp.addTelegramCommandHandler('feed', news_feed)
+    dp.addTelegramCommandHandler('poista', remove_feed)
+    
     
 
     # on noncommand i.e message - echo the message on Telegram
