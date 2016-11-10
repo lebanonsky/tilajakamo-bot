@@ -86,7 +86,7 @@ def auto_update(bot):
         room = requests.get(page['meta']['detail_url'], verify=False).json()
         rooms.append(room)
 
-        #logger.info(room)
+        logger.info(room)
 
     return rooms
 
@@ -128,12 +128,14 @@ def who(bot, update):
     msg=""
 
     h = 0
+    
 
     for room in rooms:
-        if room['member'] != None:
-            if room['member']['title'].lower().startswith(key) or room['member']['first_name'].lower().startswith(key) or room['member']['last_name'].lower().startswith(key) or room['member']['telegram'].lower().startswith(key) or room['title'].startswith(key):
-                intro = re.sub('<[^<]+?>', '', room['member']['intro'])
-                msg = msg + '%s %s @%s #%s \n"%s"\n\n' %(room['member']['first_name'],room['member']['last_name'],room['member']['telegram'], room['title'],intro )    
+        members = room['member']
+        for member in members:
+            if member['title'].lower().startswith(key) or member['first_name'].lower().startswith(key) or member['last_name'].lower().startswith(key) or member['telegram'].lower().startswith(key) or room['title'].startswith(key):
+                intro = re.sub('<[^<]+?>', '', member['intro'])
+                msg = msg + '%s %s @%s #%s \n"%s"\n\n' %(member['first_name'],member['last_name'],member['telegram'], room['title'],intro )    
                 h+=1
               
     if h == 0:
@@ -175,7 +177,7 @@ def confirm(bot, update):
 def news_feed(bot,update):
     try:
         entry = update.message.text.split(' ',1)[1]
-        logger.warn(update.update_id)
+        logger.warn(entry)
     except:
         pass
 
@@ -187,67 +189,69 @@ def news_feed(bot,update):
     )
     
     feed.add_item(
-        title = "%s (%s)"%(entry, datetime.today().strftime('%d. %m. %Y') ),
-        link = "#",
-        description = "%s (%s)"%(entry, datetime.today().strftime('%d. %m. %Y') )
-    )
-
-    try:    
-        with open('/var/www/html/news.rss','r') as fd:
-            root = objectify.fromstring(fd.read())
-
-        i = 0
-        for item in root['channel']['item']:
-            logger.warn(item.title)
-            if i < 10:
-                feed.add_item(title=item.title,
-                    link=item.link,
-                    description=item.description)
-                i = i + 1            
-    except:
-        pass
-
-    with open('/var/www/html/news.rss', 'w') as fp:
-        feed.write(fp, 'utf-8')
-
-def event_feed(bot,update):
-    try:
-        entry = update.message.text.split(' ',1)[1]
-    except:
-        pass
-
-    feed = feedgenerator.Rss201rev2Feed(
-         title = "Tilajakamo",
-         link = "http://139.162.147.227/events.rss",
-         description = "Osuuskunta Lapinlahden Tilajakamon tapahtumat",
-         language="fi",
-    )
-    
-    feed.add_item(
         title = u"%s (%s)"%(entry, datetime.today().strftime('%d. %m. %Y') ),
         link = "#",
         description = u"%s (%s)"%(entry, datetime.today().strftime('%d. %m. %Y') )
     )
-    
-    try:
-        with open('/var/www/html/events.rss','r') as fd:
-            root = objectify.fromstring(fd.read())
 
-        i = 0
-        for item in root['channel']['item']:
-            if i < 10:
-                feed.add_item(title=item.title,
-                    link=item.link,
-                    description=item.description)
-                i = i + 1            
-    except:
-        pass
+    with open('/var/www/html/news.rss','r') as fd:
+        root = objectify.fromstring(fd.read())
 
-    with open('/var/www/html/events.rss', 'w') as fp:
+    i = 0
+
+    logger.warn(root['channel'])
+
+    for item in root['channel']['item']:
+        if i < 10 and item.title:
+            logger.warn(item.title)
+            feed.add_item(title=unicode(item.title),
+                link=item.link,
+                description=unicode(item.description))
+        i = i + 1            
+
+    with open('/var/www/html/news.rss', 'w') as fp:
         feed.write(fp, 'utf-8')
 
-def remove_feed(bot,update):
 
+
+# def event_feed(bot,update):
+#     try:
+#         entry = update.message.text.split(' ',1)[1]
+#     except:
+#         pass
+
+#     feed = feedgenerator.Rss201rev2Feed(
+#          title = "Tilajakamo",
+#          link = "http://139.162.147.227/events.rss",
+#          description = "Osuuskunta Lapinlahden Tilajakamon tapahtumat",
+#          language="fi",
+#     )
+    
+#     feed.add_item(
+#         title = u"%s (%s)"%(entry, datetime.today().strftime('%d. %m. %Y') ),
+#         link = "#",
+#         description = u"%s (%s)"%(entry, datetime.today().strftime('%d. %m. %Y') )
+#     )
+    
+#     try:
+#         with open('/var/www/html/events.rss','r') as fd:
+#             root = objectify.fromstring(fd.read())
+
+#         i = 0
+#         for item in root['channel']['item']:
+#             logger.warn(i)
+#             if i < 10 and item.title:
+#                 feed.add_item(title=item.title,
+#                     link=item.link,
+#                     description=item.description)
+#                 i = i + 1            
+#     except:
+#         pass
+
+#     with open('/var/www/html/events.rss', 'w') as fp:
+#         feed.write(fp, 'utf-8')
+
+def remove_feed(bot,update):
 
     try:
         entry = update.message.text.split(' ',1)[1]
